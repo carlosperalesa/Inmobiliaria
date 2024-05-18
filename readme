@@ -1,0 +1,31 @@
+cd c:
+cd CODE/inmobiliaria/
+
+source ./venv/Scripts/activate
+python -m pip freeze > requirements.txt 
+pip install -r requirements.txt
+cd inmobiliaria
+python manage.py makemigrations
+python manage.py migrate
+python manage.py load
+python manage.py runserver
+
+python manage.py dumpdata > data.json
+python manage.py flush
+python manage.py loaddata data.json
+
+python manage.py logger tin, twe, tco, the, tfo, tlu, teu, tru, tci, tei, tvi, tvp, --py, --html
+
+FALTA------------------------------------------------
+
+formato de rut 
+
+agregar signo peso // falta el peso
+
+paginacion en ver todas // agregado-falta habilitar
+
+aplicar capa de services hace la logica de los datos y repositorio va a buscar los datos
+
+falta revisar flujos
+
+

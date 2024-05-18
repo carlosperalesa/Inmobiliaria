@@ -1,0 +1,18 @@
+@login_required
+def editar_inmuebles(request, inmuebles_id):
+    inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
+    if request.user.tipo_usuario != 'arrendador' or request.user != inmueble.propietario:
+        return redirect('ver_inmuebles')
+
+    if request.method == 'POST':
+        form = InmuebleForm(request.POST, instance=inmueble)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Inmueble actualizado con éxito.')
+            return redirect('editar_inmuebles', inmuebles_id=inmuebles_id)
+        else:
+            messages.error(request, 'Hubo un problema al actualizar el inmueble.')
+    else:
+        form = InmuebleForm(instance=inmueble)
+
+    return render(request, 'inmuebles/editar_inmuebles.html', {'form': form})

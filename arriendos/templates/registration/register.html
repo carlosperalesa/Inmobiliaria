@@ -1,0 +1,44 @@
+{% extends 'index.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+    <script>
+        {% for message in messages %}
+            alert('{{ message }}');
+        {% endfor %}
+    </script>
+{% endif %}
+
+<div style="display: flex; flex-direction: column; align-items: center; min-height: 80vh;">
+    <div class="card mb-3 p-3 mt-3" style="width: 50%">
+        <div class="card-body">
+            <h5 class="card-title">Registro</h5>
+            <form method="POST">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success">Registrarse</button>
+                </div>            
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% comment %} 
+
+{% endcomment %}
+
+{% comment %} 
+<h2>Registro</h2>
+<form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Registrarse</button>
+</form>
+{% endcomment %} 

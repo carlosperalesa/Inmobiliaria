@@ -1,0 +1,11 @@
+{% extends "principal.html" %}
+
+{% block content %}
+<div style="text-align: center; margin-top: 50px;">
+    <h1 style="font-size: 60px; color: #f8bbd0;">¡Ups!</h1>
+    <img src="{% static 'sad.png' %}" alt="Flan triste" style="width: 200px;">
+    <h2 style="color: #f48fb1;">Parece que esta página se ha derretido...</h2>
+    <p style="color: #f06292;">El flan que buscas no se encuentra aquí. Pero no te preocupes, puedes volver a la página de inicio y seguir disfrutando de nuestros deliciosos flanes.</p>
+    <a href="/" style="background-color: #ec407a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Volver al inicio</a>
+</div>
+{% endblock %}

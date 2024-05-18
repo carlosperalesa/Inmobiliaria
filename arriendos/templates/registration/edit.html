@@ -1,0 +1,39 @@
+{% extends 'index.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Editar Perfil{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; align-items: center; min-height: 80vh;">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="card mb-3 p-3 mt-3" style="width: 50%">
+        <div class="card-body">
+            <h5 class="card-title">Editar Perfil</h5>
+            <form method="post" action="{% url 'edit_profile' %}">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success me-2">Guardar Cambios</button>
+                </div>
+                {% if form.errors %}
+                <div class="alert alert-danger mt-3" role="alert">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+            </form>
+            <form method="post" action="{% url 'eliminar_usuario' %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu perfil?');">
+                {% csrf_token %}
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="submit" class="btn btn-danger">Eliminar Perfil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

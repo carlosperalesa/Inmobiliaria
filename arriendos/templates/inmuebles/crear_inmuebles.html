@@ -1,0 +1,50 @@
+{% extends 'index.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Crear Inmueble{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; align-items: center; min-height: 80vh;">
+    <div class="card mb-3 p-3 mt-3" style="width: 50%">
+        <div class="card-body">
+            <h5 class="card-title">Crear un nuevo inmueble</h5>
+            <form method="post" enctype="multipart/form-data">  
+                {% csrf_token %}
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success">Crear</button> 
+                    <button type="reset" class="btn btn-outline-success ms-2">Limpiar</button>
+                </div> 
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var regionSelect = document.getElementById('id_region');
+        var comunaSelect = document.getElementById('id_comuna');
+    
+        regionSelect.addEventListener('change', function() {
+            var regionId = regionSelect.value;
+            comunaSelect.innerHTML = ''; // Limpiar las opciones existentes
+    
+            // Obtener comunas de la región seleccionada mediante una solicitud AJAX
+            fetch(`/api/regiones/${regionId}/comunas/`)
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(comuna => {
+                        var option = document.createElement('option');
+                        option.text = comuna.nombre;
+                        option.value = comuna.id;
+                        comunaSelect.add(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al obtener comunas:', error);
+                });
+        });
+    });
+</script>
+{% endblock %}

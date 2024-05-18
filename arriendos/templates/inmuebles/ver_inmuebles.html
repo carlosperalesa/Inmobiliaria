@@ -1,0 +1,118 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block title %}Ver Inmuebles{% endblock %}
+
+{% block content %}
+<style>
+.card{
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 6px 10px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
+    transition: .3s transform cubic-bezier(.155,1.105,.295,1.12),.3s box-shadow,.3s -webkit-transform cubic-bezier(.155,1.105,.295,1.12);
+    cursor: pointer;
+}
+
+.card:hover{
+     transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+}</style>
+{% if request.user.is_authenticated and request.user.tipo_usuario == 'arrendatario' %}
+<div class="container mt-3 mb-3" >
+    <div class="row ">
+        <div class="col-md-4">
+            <select class="form-select" id="selectRegion">
+                <option value="">Seleccionar Región</option>
+                {% for region in regiones %}
+                    <option value="{{ region.id }}">{{ region.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" id="selectComuna">
+                <option value="">Seleccionar Comuna</option>
+                {% for comuna in comunas %}
+                    <option value="{{ comuna.id }}">{{ comuna.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-success" id="btnAplicarFiltro">Aplicar Filtro</button>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-outline-success" id="btnLimpiarFiltro">Limpiar Filtro</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+<div class="container" style="min-height: 80vh;">
+    <div class="row" id="inmueblesContainer">
+        {% for inmueble in inmuebles %}
+        <div class="col-md-3 mb-4 mt-3" data-inmueble-id="{{ inmueble.id }}" data-comuna-id="{{ inmueble.comuna.id }}">
+            <div class="card h-100">
+                {% if inmueble.imagen %}
+                <img src="{{ inmueble.imagen.url }}" class="card-img-top" alt="{{ inmueble.nombre }}" style="max-height: 150px; object-fit: cover;">
+                {% else %}
+                <img src="{% static 'img/home_default.jpg' %}" class="card-img-top" alt="{{ inmueble.nombre }}" style="max-height: 150px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h6 class="card-title">{{ inmueble.nombre }}</h6>
+                    <p class="card-text">{{ inmueble.descripcion }}</p>
+                    <p class="card-text"><small class="text-muted">Región: {{ inmueble.comuna.region.nombre }}</small></p>
+                    <p class="card-text"><small class="text-muted">Comuna: {{ inmueble.comuna.nombre }}</small></p>
+                    <p class="card-text"><small class="text-muted">Precio: ${{ inmueble.precio_mensual_arriendo }}</small></p>
+                </div>
+                <div class="card-footer d-flex justify-content-end">
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.tipo_usuario == 'arrendador' %}
+                            <div class="btn-group" role="group" aria-label="Acciones">
+                                <a href="{% url 'editar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm mr-3">Editar</a>
+                                <a href="{% url 'eliminar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+                            </div>
+                        {% else %}
+                            <form>
+                                <a href="{% url 'ver_propiedad' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm">Ver Propiedad</a>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <nav aria-label="Page navigation example">
+            <ul class="pagination justify-content-end">
+              <li class="page-item disabled">
+                <a class="page-link">Previous</a>
+              </li>
+              <li class="page-item"><a class="page-link" href="#">1</a></li>
+              <li class="page-item"><a class="page-link" href="#">2</a></li>
+              <li class="page-item"><a class="page-link" href="#">3</a></li>
+              <li class="page-item">
+                <a class="page-link" href="#">Next</a>
+              </li>
+            </ul>
+          </nav>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#btnAplicarFiltro').click(function () {
+            var comunaId = $('#selectComuna').val();
+            if (comunaId) {
+                $('#inmueblesContainer').find('[data-inmueble-id]').hide();
+                $('#inmueblesContainer').find('[data-inmueble-id][data-comuna-id="' + comunaId + '"]').show();
+            } else {
+                $('#inmueblesContainer').find('[data-inmueble-id]').show();
+            }
+        });
+        
+
+        $('#btnLimpiarFiltro').click(function () {
+            $('#inmueblesContainer').find('[data-inmueble-id]').show();
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block title %}Detalles de la Propiedad{% endblock %}
+
+{% block content %}
+<div class="container" style="display: flex; flex-direction: column; align-items: center; min-height: 80vh;">
+    <div class="card mb-3 mt-3">
+        <div class="row g-0">
+            <div class="col-md-6">
+                {% if inmueble.imagen %}
+                <img src="{{ inmueble.imagen.url }}" class="img-fluid rounded-start w-100 h-100" alt="{{ inmueble.nombre }}">
+                {% else %}
+                <img src="{% static 'img/home_default.jpg' %}" class="img-fluid rounded-start" alt="{{ inmueble.nombre }}">
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <div class="card-body">
+                    <h5 class="card-title">Descripción: {{ inmueble.descripcion }}</h5>
+                    <p class="card-text">Región: {{ inmueble.comuna.region.nombre }}</p>
+                    <p class="card-text">Comuna: {{ inmueble.comuna.nombre }}</p>
+                    <p class="card-text">Metros² Construidos: {{ inmueble.m2_construidos }}</p>
+                    <p class="card-text">Metros² Totales: {{ inmueble.m2_totales }}</p>
+                    <p class="card-text">Cantidad de Estacionamientos: {{ inmueble.cantidad_estacionamientos }}</p>
+                    <p class="card-text">Cantidad de Habitaciones: {{ inmueble.cantidad_habitaciones }}</p>
+                    <p class="card-text">Cantidad de Baños: {{ inmueble.cantidad_banos }}</p>
+                    <p class="card-text">Precio Mensual Arriendo: ${{ inmueble.precio_mensual_arriendo }}</p>
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'contacto' %}?name={{ request.user.primer_nombre }}&email={{ request.user.email }}&subject=Solicitud de arriendo de la propiedad {{ inmueble.id }}&message=Hola! me interesa la propiedad {{ inmueble.id }} llamame al {{ request.user.telefono_personal }}" class="btn btn-success me-2">Solicitar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
