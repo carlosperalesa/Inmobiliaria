@@ -1,14 +1,20 @@
-document.getElementById('regionSelect').addEventListener('change', function() {
-    var regionId = this.value;
-    var comunaSelect = document.getElementById('comunaSelect');
-    var comunas = comunaSelect.querySelectorAll('option[data-region]');
-    
-    comunaSelect.value = ''; // Reset the comuna select
-    comunas.forEach(function(comuna) {
-        if (regionId === '' || comuna.getAttribute('data-region') === regionId) {
-            comuna.style.display = 'block';
+document.addEventListener('DOMContentLoaded', function() {
+    var regionSelect = document.getElementById('id_region');
+    var comunaSelect = document.getElementById('id_comuna');
+
+    regionSelect.addEventListener('change', function() {
+        var regionId = this.value;
+        if (regionId) {
+            fetch(`/comunas_por_region/${regionId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    comunaSelect.innerHTML = '<option value="">Seleccione una comuna</option>';
+                    data.forEach(comuna => {
+                        comunaSelect.innerHTML += `<option value="${comuna.id}">${comuna.nombre}</option>`;
+                    });
+                });
         } else {
-            comuna.style.display = 'none';
+            comunaSelect.innerHTML = '<option value="">Seleccione una comuna</option>';
         }
     });
 });

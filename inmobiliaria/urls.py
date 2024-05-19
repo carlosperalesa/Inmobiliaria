@@ -29,8 +29,9 @@ urlpatterns = [
     path('eliminar_usuario/', eliminar_usuario, name='eliminar_usuario'),
     path('logout/', salir, name='logout'),
     # Otras rutas
-    path('api/regiones/<int:region_id>/comunas/',
+    path('ajax/comunas/<int:region_id>/',
          comunas_por_region, name='comunas_por_region'),
+
 ]
 
 if settings.DEBUG:

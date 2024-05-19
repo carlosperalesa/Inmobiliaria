@@ -32,7 +32,7 @@
 {% if messages %}
 {% for message in messages %}
 <div class="container mt-4">
-    <div class="alert alert-{{ message.tags }} mt-3" role="alert" style="width: 50%">
+    <div class="alert alert-{{ message.tags }} mt-3" role="alert">
         {{ message }}
     </div>
 </div>
@@ -44,7 +44,7 @@
     <form method="GET" action="{% url 'ver_inmuebles' %}" class="mb-3">
         <div class="row">
             <div class="col-md-4">
-                <select name="region" id="region" class="form-select">
+                <select name="region" id="id_region" class="form-select">
                     <option value="">Selecciona una región</option>
                     {% for region in regiones %}
                     <option value="{{ region.id }}" {% if request.GET.region == region.id|stringformat:"s" %}selected{% endif %}>{{ region.nombre }}</option>
@@ -52,7 +52,7 @@
                 </select>
             </div>
             <div class="col-md-4">
-                <select name="comuna" id="comuna" class="form-select">
+                <select name="comuna" id="id_comuna" class="form-select">
                     <option value="">Selecciona una comuna</option>
                     {% for comuna in comunas %}
                     <option value="{{ comuna.id }}" {% if request.GET.comuna == comuna.id|stringformat:"s" %}selected{% endif %}>{{ comuna.nombre }}</option>
@@ -79,7 +79,6 @@
                 {% endif %}
                 <div class="card-body">
                     <h6 class="card-title">{{ inmueble.descripcion }}</h6>
-                    <p class="card-text">{{ inmueble.descripcion }}</p>
                     <p class="card-text"><small class="text-muted">Región: {{ inmueble.comuna.region.nombre }}</small></p>
                     <p class="card-text"><small class="text-muted">Comuna: {{ inmueble.comuna.nombre }}</small></p>
                     <p class="card-text"><small class="text-muted">Precio: ${{ inmueble.precio_mensual_arriendo }}</small></p>
@@ -107,8 +106,7 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<script>
+<script name="paginador">
     $(document).ready(function() {
         // Cantidad de tarjetas por página
         var tarjetasPorPagina = 12;
@@ -147,6 +145,22 @@
         $('#inmueblesContainer').after(paginacion);
     });
 </script>
-<script src="{% static 'js/script_comunas.js' %}"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#id_region').change(function() {
+            var url = "{% url 'comunas_por_region' 0 %}".slice(0, -2) + $(this).val() + '/';
+            $.ajax({
+                url: url,
+                success: function(data) {
+                    var $comuna = $('#id_comuna');
+                    $comuna.find('option').remove();
+                    $.each(data, function(key, value) {
+                        $comuna.append('<option value="' + value.id + '">' + value.nombre + '</option>');
+                    });
+                }
+            });
+        });
+    });
+</script>
 <script src="{% static 'js/modal_delete.js' %}"></script>
 {% endblock %}

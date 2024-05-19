@@ -19,9 +19,28 @@
         </div>
     </div>
 </div>
-<script src="{% static 'js/script_comunas.js' %}"></script>
-<script>
-    document.getElementById('id_comuna').dataset.comunaId = "{{ inmueble.comuna.id }}";
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#id_region').change(function() {
+            var url = "{% url 'comunas_por_region' 0 %}".slice(0, -2) + $(this).val() + '/';
+            $.ajax({
+                url: url,
+                success: function(data) {
+                    var $comuna = $('#id_comuna');
+                    $comuna.find('option').remove();
+                    $.each(data, function(key, value) {
+                        $comuna.append('<option value="' + value.id + '">' + value.nombre + '</option>');
+                    });
+                }
+            });
+        });
+    });
 </script>
+<style>
+    textarea {
+        height: 5em;  /* Ajusta el alto del cuadro de mensaje */
+    }
+</style>
 <script src="{% static 'js/modal_delete.js' %}"></script>
 {% endblock %}

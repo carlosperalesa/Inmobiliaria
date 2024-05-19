@@ -14,6 +14,8 @@
     <link href="{% static 'css/style.css' %}" rel="stylesheet" />
     <!-- fontawesome -->
     <script src="https://kit.fontawesome.com/334a740400.js" crossorigin="anonymous"></script>
+    <script src="{% static 'js/script_comunas.js' %}"></script>
+    <script src="{% static 'js/modal_delete.js' %}"></script>
     <title>
         {%block title%}{%endblock title%}
     </title>
@@ -43,10 +45,9 @@
 </div>
 
 
-<body style="background-color: #DFFFD5;">
+<body>
 
 {% include 'header.html' %}
-
 
 
     {% block content %}

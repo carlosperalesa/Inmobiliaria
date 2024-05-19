@@ -153,6 +153,7 @@ def ver_inmuebles(request):
     })
 
 
+@login_required
 def ver_propiedad(request, inmuebles_id):
     try:
         inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
@@ -202,12 +203,11 @@ def contacto(request):
             form_submitted = False
     else:
         form_submitted = False
-        # Prefill the form with GET parameters
         initial_data = {
             'name': request.GET.get('name', ''),
             'email': request.GET.get('email', ''),
             'subject': request.GET.get('subject', ''),
-            'message': request.GET.get('message', '')
+            'message': request.GET.get('message', ''),
         }
         form = ContactForm(initial=initial_data)
 

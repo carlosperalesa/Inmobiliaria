@@ -75,7 +75,7 @@ class InmuebleForm(forms.ModelForm):
                 self.fields['comuna'].queryset = Comuna.objects.filter(
                     region_id=region_id).order_by('nombre')
             except (ValueError, TypeError):
-                pass  # Invalid input from the client; ignore and fallback to empty Comuna queryset
+                pass
         elif self.instance.pk:
             self.fields['comuna'].queryset = self.instance.region.comuna_set.order_by(
                 'nombre')
