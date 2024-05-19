@@ -1,13 +1,15 @@
 {% extends 'index.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Editar Perfil{% endblock %}
 
 {% block content %}
+
 <div style="display: flex; flex-direction: column; align-items: center; min-height: 80vh;">
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+            <div class="alert alert-{{ message.tags }} mt-3" role="alert" style="width: 50%">
                 {{ message }}
             </div>
         {% endfor %}
@@ -27,13 +29,19 @@
                 </div>
                 {% endif %}
             </form>
-            <form method="post" action="{% url 'eliminar_usuario' %}" onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu perfil?');">
-                {% csrf_token %}
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="submit" class="btn btn-danger">Eliminar Perfil</button>
-                </div>
-            </form>
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;"> <!-- Envuelve ambos botones y los alinea a la derecha -->
+                <form method="post" action="{% url 'eliminar_usuario' %}" style="margin-right: 10px;">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-danger btnEliminar" data-bs-toggle="modal" data-bs-target="#eliminarModal">
+                        Eliminar Perfil 
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
+
+
+<script src="{% static 'js/modal_delete.js' %}"></script>
 {% endblock %}
+

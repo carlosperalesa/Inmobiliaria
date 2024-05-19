@@ -26,8 +26,7 @@
                     <p class="card-text">Cantidad de Baños: {{ inmueble.cantidad_banos }}</p>
                     <p class="card-text">Precio Mensual Arriendo: ${{ inmueble.precio_mensual_arriendo }}</p>
                     <div class="d-flex justify-content-end">
-                        <a href="{% url 'contacto' %}?name={{ request.user.primer_nombre }}&email={{ request.user.email }}&subject=Solicitud de arriendo de la propiedad {{ inmueble.id }}&message=Hola! me interesa la propiedad {{ inmueble.id }} llamame al {{ request.user.telefono_personal }}" class="btn btn-success me-2">Solicitar</a>
-                    </div>
+                    <a href="{% url 'contacto' %}?name={{ request.user.primer_nombre }}&email={{ request.user.email }}&subject=Solicitud de arriendo de la propiedad {{ inmueble.id }}&message=Hola! me interesa la propiedad {{ inmueble.id }} llamame al {{ request.user.telefono_personal }}" class="btn btn-success me-2">Solicitar Arriendo</a>                    </div>
                 </div>
             </div>
         </div>

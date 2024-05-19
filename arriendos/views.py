@@ -5,9 +5,10 @@ from django.contrib.auth import logout, authenticate, login as auth_login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import *
-from django.http import JsonResponse, HttpResponseRedirect
+from .models import Comuna, Region, Inmueble
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
 from django.urls import reverse_lazy
+from django.http import Http404
 
 # Create your views here.
 
@@ -131,18 +132,33 @@ def crear_inmuebles(request):
     return render(request, 'inmuebles/crear_inmuebles.html', {'form': form})
 
 
-@login_required  # vista general
+@login_required
 def ver_inmuebles(request):
     inmuebles = Inmueble.objects.all()
     regiones = Region.objects.all()
     comunas = Comuna.objects.all()
-    return render(request, 'inmuebles/ver_inmuebles.html', {'regiones': regiones, 'comunas': comunas, 'inmuebles': inmuebles})
+
+    region_id = request.GET.get('region')
+    comuna_id = request.GET.get('comuna')
+
+    if region_id:
+        inmuebles = inmuebles.filter(region_id=region_id)
+    if comuna_id:
+        inmuebles = inmuebles.filter(comuna_id=comuna_id)
+
+    return render(request, 'inmuebles/ver_inmuebles.html', {
+        'regiones': regiones,
+        'comunas': comunas,
+        'inmuebles': inmuebles
+    })
 
 
 def ver_propiedad(request, inmuebles_id):
-    print("Entrando a la vista ver_propiedad")  # Agregar este print
-    inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
-    return render(request, 'inmuebles/ver_propiedad.html', {'inmueble': inmueble})
+    try:
+        inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
+        return render(request, 'inmuebles/ver_propiedad.html', {'inmueble': inmueble})
+    except Http404:
+        return render(request, 'errors/404.html', status=404)
 
 
 @login_required
@@ -152,11 +168,12 @@ def editar_inmuebles(request, inmuebles_id):
         return redirect('ver_inmuebles')
 
     if request.method == 'POST':
-        form = InmuebleForm(request.POST, instance=inmueble)
+        form = InmuebleForm(request.POST, request.FILES,
+                            instance=inmueble)
         if form.is_valid():
             form.save()
             messages.success(request, 'Inmueble actualizado con éxito.')
-            return render(request, 'inmuebles/editar_inmuebles.html', {'form': form, 'inmueble': inmueble, 'form_submitted': True})
+            return redirect('ver_inmuebles')
         else:
             messages.error(
                 request, 'Hubo un problema al actualizar el inmueble.')

@@ -24,11 +24,12 @@ class UsuarioManager(BaseUserManager):
 
 
 def validar_formato_rut(value):
-    if not value or not value.isdigit():
-        raise ValidationError('El RUT debe contener solo números.')
-    if len(value) != 9 or value[8] not in '0123456789':
+    if not value:
+        raise ValidationError('El RUT no puede estar vacío.')
+    # Verificar si el formato del RUT es válido (solo números y K, con 9 dígitos)
+    if len(value) != 10 or value[8] not in '0123456789kK' or not value[:-2].isdigit():
         raise ValidationError(
-            'El RUT debe tener el formato correcto: 12345678-9')
+            'El RUT debe tener el formato correcto: 12345678-9 o 12345678-K')
 
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
@@ -37,11 +38,13 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         ('arrendatario', 'Arrendatario'),
     )
     tipo_usuario = models.CharField(max_length=50, choices=TIPO)
+
     rut_validator = RegexValidator(
         regex=r'^\d{7,8}-[\dKk]$',
         message="El formato del RUT debe ser válido."
     )
-    rut = models.CharField(max_length=10, validators=[validar_formato_rut])
+    rut = models.CharField(max_length=10, validators=[rut_validator])
+
     primer_nombre = models.CharField(max_length=30)
     segundo_nombre = models.CharField(max_length=30, blank=True, null=True)
     primer_apellido = models.CharField(max_length=30)
@@ -57,6 +60,16 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['primer_nombre', 'primer_apellido']
 
     objects = UsuarioManager()
+
+    def normalizar_rut(self):
+        rut = self.rut.replace(".", "").replace("-", "")
+        rut = rut[:-1] + "-" + rut[-1].upper()
+        return rut
+
+    def save(self, *args, **kwargs):
+        if self.rut:
+            self.rut = self.normalizar_rut()
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.primer_nombre} {self.segundo_nombre} {self.primer_apellido} {self.segundo_apellido}"
@@ -99,7 +112,7 @@ class Inmueble(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     arrendatario = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name='arrendamientos', on_delete=models.SET_NULL, null=True, blank=True)
-    imagen = models.ImageField(upload_to='media/img', blank=True, null=True)
+    imagen = models.ImageField(upload_to='img', blank=True, null=True)
 
 
 class Contact(models.Model):

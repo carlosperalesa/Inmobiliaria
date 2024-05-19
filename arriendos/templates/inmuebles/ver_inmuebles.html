@@ -16,33 +16,55 @@
 .card:hover{
      transform: scale(1.05);
   box-shadow: 0 10px 20px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+
+.page-link {
+    color: #fff; /* Color del texto */
+    background-color: #28a745; /* Color de fondo verde "success" */
+    border-color: #28a745; /* Color del borde */
+}
+
+.page-item.active .page-link {
+    background-color: #218838; /* Color de fondo verde más oscuro para el botón activo */
+    border-color: #1e7e34; /* Color del borde */
+}
 }</style>
-{% if request.user.is_authenticated and request.user.tipo_usuario == 'arrendatario' %}
-<div class="container mt-3 mb-3" >
-    <div class="row ">
-        <div class="col-md-4">
-            <select class="form-select" id="selectRegion">
-                <option value="">Seleccionar Región</option>
-                {% for region in regiones %}
-                    <option value="{{ region.id }}">{{ region.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-4">
-            <select class="form-select" id="selectComuna">
-                <option value="">Seleccionar Comuna</option>
-                {% for comuna in comunas %}
-                    <option value="{{ comuna.id }}">{{ comuna.nombre }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="button" class="btn btn-success" id="btnAplicarFiltro">Aplicar Filtro</button>
-        </div>
-        <div class="col-md-2">
-            <button type="button" class="btn btn-outline-success" id="btnLimpiarFiltro">Limpiar Filtro</button>
-        </div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="container mt-4">
+    <div class="alert alert-{{ message.tags }} mt-3" role="alert" style="width: 50%">
+        {{ message }}
     </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if user.tipo_usuario == 'arrendatario' %}
+<div class="container mt-4">
+    <form method="GET" action="{% url 'ver_inmuebles' %}" class="mb-3">
+        <div class="row">
+            <div class="col-md-4">
+                <select name="region" id="region" class="form-select">
+                    <option value="">Selecciona una región</option>
+                    {% for region in regiones %}
+                    <option value="{{ region.id }}" {% if request.GET.region == region.id|stringformat:"s" %}selected{% endif %}>{{ region.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="comuna" id="comuna" class="form-select">
+                    <option value="">Selecciona una comuna</option>
+                    {% for comuna in comunas %}
+                    <option value="{{ comuna.id }}" {% if request.GET.comuna == comuna.id|stringformat:"s" %}selected{% endif %}>{{ comuna.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex justify-content-end">
+                <button type="submit" class="btn btn-success me-2">Filtrar</button>
+                <a href="{% url 'ver_inmuebles' %}" class="btn btn-outline-success">Limpiar Filtros</a>
+            </div>
+        </div>
+    </form>
 </div>
 {% endif %}
 <div class="container" style="min-height: 80vh;">
@@ -51,12 +73,12 @@
         <div class="col-md-3 mb-4 mt-3" data-inmueble-id="{{ inmueble.id }}" data-comuna-id="{{ inmueble.comuna.id }}">
             <div class="card h-100">
                 {% if inmueble.imagen %}
-                <img src="{{ inmueble.imagen.url }}" class="card-img-top" alt="{{ inmueble.nombre }}" style="max-height: 150px; object-fit: cover;">
+                <img src="{{ inmueble.imagen.url }}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
                 {% else %}
-                <img src="{% static 'img/home_default.jpg' %}" class="card-img-top" alt="{{ inmueble.nombre }}" style="max-height: 150px; object-fit: cover;">
+                <img src="{% static 'img/home_default.jpg' %}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
                 {% endif %}
                 <div class="card-body">
-                    <h6 class="card-title">{{ inmueble.nombre }}</h6>
+                    <h6 class="card-title">{{ inmueble.descripcion }}</h6>
                     <p class="card-text">{{ inmueble.descripcion }}</p>
                     <p class="card-text"><small class="text-muted">Región: {{ inmueble.comuna.region.nombre }}</small></p>
                     <p class="card-text"><small class="text-muted">Comuna: {{ inmueble.comuna.nombre }}</small></p>
@@ -67,7 +89,9 @@
                         {% if request.user.tipo_usuario == 'arrendador' %}
                             <div class="btn-group" role="group" aria-label="Acciones">
                                 <a href="{% url 'editar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm mr-3">Editar</a>
-                                <a href="{% url 'eliminar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-danger btn-sm">Eliminar</a>
+                                <form method="post" action="{% url 'eliminar_inmuebles' inmuebles_id=inmueble.id %}">  
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-danger btn-sm btnEliminar" data-inmueble-id="{{ inmueble.id }}">Eliminar</button>                            </form>
                             </div>
                         {% else %}
                             <form>
@@ -79,40 +103,50 @@
             </div>
         </div>
         {% endfor %}
-        <nav aria-label="Page navigation example">
-            <ul class="pagination justify-content-end">
-              <li class="page-item disabled">
-                <a class="page-link">Previous</a>
-              </li>
-              <li class="page-item"><a class="page-link" href="#">1</a></li>
-              <li class="page-item"><a class="page-link" href="#">2</a></li>
-              <li class="page-item"><a class="page-link" href="#">3</a></li>
-              <li class="page-item">
-                <a class="page-link" href="#">Next</a>
-              </li>
-            </ul>
-          </nav>
-    </div>
+    </div> 
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-        $('#btnAplicarFiltro').click(function () {
-            var comunaId = $('#selectComuna').val();
-            if (comunaId) {
-                $('#inmueblesContainer').find('[data-inmueble-id]').hide();
-                $('#inmueblesContainer').find('[data-inmueble-id][data-comuna-id="' + comunaId + '"]').show();
-            } else {
-                $('#inmueblesContainer').find('[data-inmueble-id]').show();
-            }
-        });
-        
 
-        $('#btnLimpiarFiltro').click(function () {
-            $('#inmueblesContainer').find('[data-inmueble-id]').show();
-        });
+<script>
+    $(document).ready(function() {
+        // Cantidad de tarjetas por página
+        var tarjetasPorPagina = 12;
+        // Total de tarjetas
+        var totalTarjetas = $('#inmueblesContainer .col-md-3').length;
+        // Número de páginas
+        var numeroPaginas = Math.ceil(totalTarjetas / tarjetasPorPagina);
+
+        // Función para mostrar las tarjetas de una página específica
+        function mostrarTarjetas(pagina) {
+            var inicio = (pagina - 1) * tarjetasPorPagina;
+            var fin = inicio + tarjetasPorPagina;
+            $('#inmueblesContainer .col-md-3').hide().slice(inicio, fin).show();
+        }
+
+        // Crear la paginación
+        var paginacion = $('<nav aria-label="Page navigation example"><ul class="pagination justify-content-end"></ul></nav>');
+        var listaPaginas = paginacion.find('ul');
+
+        for (var i = 1; i <= numeroPaginas; i++) {
+            var enlacePagina = $('<li class="page-item"><a class="page-link" href="#">' + i + '</a></li>');
+            enlacePagina.click(function() {
+                var pagina = parseInt($(this).text());
+                mostrarTarjetas(pagina);
+                listaPaginas.find('.active').removeClass('active');
+                $(this).addClass('active');
+            });
+            listaPaginas.append(enlacePagina);
+        }
+
+        // Mostrar la primera página al cargar
+        mostrarTarjetas(1);
+        listaPaginas.find('li:first-child').addClass('active');
+
+        // Agregar la paginación al DOM
+        $('#inmueblesContainer').after(paginacion);
     });
 </script>
-
+<script src="{% static 'js/script_comunas.js' %}"></script>
+<script src="{% static 'js/modal_delete.js' %}"></script>
 {% endblock %}

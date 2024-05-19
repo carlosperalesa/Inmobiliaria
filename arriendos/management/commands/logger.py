@@ -28,6 +28,11 @@ archivos_html = {
     "tvp": "arriendos/templates/inmuebles/ver_propiedad.html",
 }
 
+archivos_js = {
+    "sc": "arriendos/templates/static/js/script_comunas.js",
+    "md": "arriendos/templates/static/js/modal_delete.js",
+}
+
 
 class Command(BaseCommand):
     help = "Copiar contenido de archivos especificados a un archivo de salida."
@@ -37,6 +42,8 @@ class Command(BaseCommand):
             "--py", nargs="*", help="Archivos Python a incluir", choices=archivos_py.keys())
         parser.add_argument(
             "--html", nargs="*", help="Archivos HTML a incluir", choices=archivos_html.keys())
+        parser.add_argument(
+            "--js", nargs="*", help="Archivos JavaScript a incluir", choices=archivos_js.keys())
 
     def handle(self, *args, **options):
         # Define el prefijo del archivo de salida
@@ -84,8 +91,8 @@ class Command(BaseCommand):
                                 archivo_out.write(f"\nError al leer {
                                                   archivo_completo}: {str(e)}\n\n")
                         else:
-                            archivo_out.write(
-                                f"\n******************************{archivo_completo} no existe******************************\n\n")
+                            archivo_out.write(f"\n******************************{
+                                              archivo_completo} no existe******************************\n\n")
 
                 # Procesar archivos Python
                 if options["py"] is not None:
@@ -98,6 +105,12 @@ class Command(BaseCommand):
                     if len(options["html"]) == 0:
                         options["html"] = archivos_html.keys()
                     procesar_archivos(archivos_html, options["html"])
+
+                # Procesar archivos JavaScript
+                if options["js"] is not None:
+                    if len(options["js"]) == 0:
+                        options["js"] = archivos_js.keys()
+                    procesar_archivos(archivos_js, options["js"])
 
                 if archivos_no_encontrados:
                     archivo_out.write(
