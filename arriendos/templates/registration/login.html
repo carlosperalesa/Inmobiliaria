@@ -8,7 +8,7 @@
     <div class="card mb-3 p-3 mt-3" style="width: 50%">
         <div class="card-body">
             <h5 class="card-title">Iniciar sesión</h5>
-            <form action="" method="POST">
+            <form action="{% url 'login' %}" method="POST">
                 {% csrf_token %}
                 {{ form|crispy }}
                 <div class="d-flex justify-content-between m-3">

@@ -41,7 +41,7 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     rut_validator = RegexValidator(
         regex=r'^\d{7,8}-[\dKk]$',
-        message="El formato del RUT debe ser válido."
+        message="El formato del RUT debe ser 7 u 8 dígitos seguidos de un guión y un dígito verificador."
     )
     rut = models.CharField(max_length=10, validators=[rut_validator])
 

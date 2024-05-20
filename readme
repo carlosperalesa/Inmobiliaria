@@ -1,5 +1,5 @@
 cd c:
-cd CODE/inmobiliaria/
+cd CODE/
 
 source ./venv/Scripts/activate
 
