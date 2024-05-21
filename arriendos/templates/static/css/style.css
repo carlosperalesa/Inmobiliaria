@@ -1,4 +1,4 @@
 * {
-    background-color: blueviolet important !;
-    padding: 50px;
+    {% comment %} background-color: #B7FF8A; {% endcomment %}
+    {% comment %} padding: 50px; {% endcomment %}
 }
