@@ -1,0 +1,620 @@
+Log generado el 2024-05-22 12:53:59
+
+
+******************************arriendos/models.py******************************
+
+from django import forms
+from django.conf import settings
+from django.db import models
+from django.db.models import Model
+from django.core.validators import RegexValidator
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
+
+
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("El email debe ser proporcionado")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+
+def validar_formato_rut(value):
+    if not value:
+        raise ValidationError('El RUT no puede estar vacío.')
+    # Verificar si el formato del RUT es válido (solo números y K, con 9 dígitos)
+    if len(value) != 10 or value[8] not in '0123456789kK' or not value[:-2].isdigit():
+        raise ValidationError(
+            'El RUT debe tener el formato correcto: 12345678-9 o 12345678-K')
+
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
+    TIPO = (
+        ('arrendador', 'Arrendador'),
+        ('arrendatario', 'Arrendatario'),
+    )
+    tipo_usuario = models.CharField(max_length=50, choices=TIPO)
+
+    rut_validator = RegexValidator(
+        regex=r'^\d{7,8}-[\dKk]$',
+        message="El formato del RUT debe ser 7 u 8 dígitos seguidos de un guión y un dígito verificador."
+    )
+    rut = models.CharField(max_length=10, validators=[rut_validator])
+
+    primer_nombre = models.CharField(max_length=30)
+    segundo_nombre = models.CharField(max_length=30, blank=True, null=True)
+    primer_apellido = models.CharField(max_length=30)
+    segundo_apellido = models.CharField(max_length=30, blank=True, null=True)
+    direccion = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(unique=True)
+    telefono_personal = models.CharField(max_length=9, blank=True, null=True)
+
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['primer_nombre', 'primer_apellido']
+
+    objects = UsuarioManager()
+
+    def normalizar_rut(self):
+        rut = self.rut.replace(".", "").replace("-", "")
+        rut = rut[:-1] + "-" + rut[-1].upper()
+        return rut
+
+    def save(self, *args, **kwargs):
+        if self.rut:
+            self.rut = self.normalizar_rut()
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.primer_nombre} {self.segundo_nombre} {self.primer_apellido} {self.segundo_apellido}"
+
+
+class Region(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
+
+
+class Comuna(models.Model):
+    nombre = models.CharField(max_length=100)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.nombre} - {self.region.nombre}"
+
+
+class Inmueble(models.Model):
+    TIPO_INMUEBLE_CHOICES = [
+        ('Casa', 'Casa'),
+        ('Departamento', 'Departamento'),
+        ('Parcela', 'Parcela'),
+    ]
+    descripcion = models.TextField()
+    m2_construidos = models.PositiveIntegerField()
+    m2_totales = models.PositiveIntegerField()
+    cantidad_estacionamientos = models.PositiveIntegerField()
+    cantidad_habitaciones = models.PositiveIntegerField()
+    cantidad_banos = models.PositiveIntegerField()
+    direccion = models.CharField(max_length=255)
+    comuna = models.ForeignKey(Comuna, on_delete=models.CASCADE)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE)
+    tipo_inmueble = models.CharField(
+        max_length=20, choices=TIPO_INMUEBLE_CHOICES)
+    precio_mensual_arriendo = models.PositiveIntegerField()
+    propietario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    arrendatario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='arrendamientos', on_delete=models.SET_NULL, null=True, blank=True)
+    imagen = models.ImageField(upload_to='img', blank=True, null=True)
+
+
+class Contact(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    subject = models.CharField(max_length=100)
+    message = models.TextField()
+
+******************************arriendos/views.py******************************
+
+from .forms import ContactForm, RegistroUsuarioForm, EditProfileForm, InmuebleForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import logout, authenticate, login as auth_login
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Comuna, Region, Inmueble
+from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
+from django.urls import reverse_lazy
+from django.http import Http404
+
+# Create your views here.
+
+
+def index(request):
+    return render(request, 'welcome.html')
+
+
+def welcome(request):
+    inmuebles = Inmueble.objects.all()[:5]
+    print(inmuebles.query)
+    return render(request, 'welcome.html', {'inmuebles': inmuebles})
+
+
+def footer(request):
+    return render(request, 'footer.html')
+
+
+def header(request):
+    return render(request, 'header.html')
+
+
+def register(request):
+    if request.method == 'POST':
+        form = RegistroUsuarioForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            password = form.cleaned_data['password']
+            user.password = make_password(password)
+            user.save()
+            messages.success(
+                request, 'Tu registro se ha completado con éxito. ¡Bienvenido a la comunidad!')
+            return redirect('login')
+        else:
+            messages.error(
+                request, 'Hubo un problema con tu registro. Por favor, intenta de nuevo.')
+    else:
+        form = RegistroUsuarioForm()
+    return render(request, 'registration/register.html', {'form': form})
+
+
+def login(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                auth_login(request, user)
+                return redirect('index')
+            else:
+                messages.error(
+                    request, 'Credenciales inválidas. Por favor, intenta de nuevo.')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'registration/login.html', {'form': form})
+
+
+@login_required
+def edit_profile(request):
+    if request.method == 'POST':
+        form = EditProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                user.set_password(password)
+            user.save()
+
+            # Verificar si se solicitó eliminar el perfil
+            if "eliminar_perfil" in request.POST:
+                # Eliminar el perfil
+                request.user.delete()
+                # Desconectar al usuario
+                logout(request)
+                # Redirigir a la página de inicio
+                return HttpResponseRedirect(reverse_lazy("index"))
+            else:
+                messages.success(request, 'Perfil actualizado correctamente.')
+                return redirect('edit_profile')
+        else:
+            messages.error(
+                request, 'Hubo un problema al actualizar el perfil.')
+    else:
+        form = EditProfileForm(instance=request.user)
+    return render(request, 'registration/edit.html', {'form': form})
+
+
+@login_required
+def eliminar_usuario(request):
+    if request.method == 'POST':
+        request.user.delete()
+        messages.success(request, 'Tu perfil ha sido eliminado correctamente.')
+        return redirect('index')
+    else:
+        return HttpResponse("Error: Método no permitido", status=405)
+
+
+@login_required
+def salir(request):
+    logout(request)
+    return redirect('index')
+
+
+def comunas_por_region(request, region_id):
+    comunas = Comuna.objects.filter(region_id=region_id).values('id', 'nombre')
+    return JsonResponse(list(comunas), safe=False)
+
+
+@login_required
+def crear_inmuebles(request):
+    if request.method == 'POST':
+        form = InmuebleForm(request.POST, request.FILES)
+        if form.is_valid():
+            inmueble = form.save(commit=False)
+            inmueble.propietario = request.user
+            inmueble.save()
+            messages.success(request, 'Inmueble creado con éxito.')
+            return redirect('ver_inmuebles')
+    else:
+        form = InmuebleForm()
+    return render(request, 'inmuebles/crear_inmuebles.html', {'form': form})
+
+
+@login_required
+def ver_inmuebles(request):
+    inmuebles = Inmueble.objects.all()
+    regiones = Region.objects.all()
+    comunas = Comuna.objects.all()
+
+    region_id = request.GET.get('region')
+    comuna_id = request.GET.get('comuna')
+
+    if region_id:
+        inmuebles = inmuebles.filter(region_id=region_id)
+    if comuna_id:
+        inmuebles = inmuebles.filter(comuna_id=comuna_id)
+
+    return render(request, 'inmuebles/ver_inmuebles.html', {
+        'regiones': regiones,
+        'comunas': comunas,
+        'inmuebles': inmuebles
+    })
+
+
+@login_required
+def ver_propiedad(request, inmuebles_id):
+    try:
+        inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
+        return render(request, 'inmuebles/ver_propiedad.html', {'inmueble': inmueble})
+    except Http404:
+        return render(request, 'errors/404.html', status=404)
+
+
+@login_required
+def editar_inmuebles(request, inmuebles_id):
+    inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
+    if request.user.tipo_usuario != 'arrendador' or request.user != inmueble.propietario:
+        return redirect('ver_inmuebles')
+
+    if request.method == 'POST':
+        form = InmuebleForm(request.POST, request.FILES,
+                            instance=inmueble)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Inmueble actualizado con éxito.')
+            return redirect('ver_inmuebles')
+        else:
+            messages.error(
+                request, 'Hubo un problema al actualizar el inmueble.')
+    else:
+        form = InmuebleForm(instance=inmueble)
+
+    return render(request, 'inmuebles/editar_inmuebles.html', {'form': form, 'inmueble': inmueble})
+
+
+@login_required
+def eliminar_inmuebles(request, inmuebles_id):
+    inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
+    if request.user.tipo_usuario == 'arrendador' and request.user == inmueble.propietario:
+        inmueble.delete()
+        messages.success(request, 'Inmueble eliminado con éxito')
+    return redirect('ver_inmuebles')
+
+
+def contacto(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            form.save()
+            form_submitted = True
+        else:
+            form_submitted = False
+    else:
+        form_submitted = False
+        initial_data = {
+            'name': request.GET.get('name', ''),
+            'email': request.GET.get('email', ''),
+            'subject': request.GET.get('subject', ''),
+            'message': request.GET.get('message', ''),
+        }
+        form = ContactForm(initial=initial_data)
+
+    return render(request, 'contacto.html', {'form': form, 'form_submitted': form_submitted})
+
+******************************arriendos/templates/welcome.html******************************
+
+{% extends 'index.html' %}
+{% load static %}
+{% block title %}Bienvenido{% endblock %}
+
+{% block content %}
+
+{% comment %} seccion carrusel {% endcomment %}
+<div id="carrusel" class="carousel slide" data-bs-ride="carousel"> <!-- Define a fixed height -->
+    <div class="carousel-inner" style="height: 100vh"> <!-- Ensure the inner container uses full height -->
+        <div class="carousel-item active">
+            <img src={%static 'img/carrusel (1).jpg'%} class="d-block w-100" alt="cr1">
+        </div>
+        <div class="carousel-item">
+            <img src={%static 'img/carrusel (2).png'%} class="d-block w-100" alt="cr2">
+        </div>
+        <div class="carousel-item">
+            <img src={%static 'img/carrusel (3).png'%} class="d-block w-100" alt="cr3">
+        </div>
+        <div class="carousel-item">
+            <img src={%static 'img/carrusel (1).png'%} class="d-block w-100" alt="cr4">
+        </div>
+    </div>
+    <button id="prev" class="carousel-control-prev" type="button" data-bs-target="#carrusel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button id="next" class="carousel-control-next" type="button" data-bs-target="#carrusel" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+{% comment %} seccion que nos mueve {% endcomment %}
+
+<div class="mt-2" style="padding-left: 50px">
+    <h1 class="mt-5">¿Qué nos mueve?</h1>
+    <div class="row mt-5">
+        <div class="col-6">
+            <h2>Ser confiables</h2>
+            <h6>Somos personas honestas que a pesar de las dificultades hacemos cumplir nuestro compromiso. Sobresalimos por nuestro profesionalismo con colaboradores resilientes capaces de adaptarse flexiblemente a situaciones adversas. La calidad de nuestro trabajo y de todo lo que realizamos es nuestro propósito.</h6>
+        </div>
+        <div class="col-4">
+            <h2>Ser innovadores</h2>
+            <h6>Nos caracterizamos por ser creativos y proactivos, siempre buscamos la manera de mejorar y de hacer las cosas de manera diferente. Nos adaptamos a los cambios y a las nuevas tecnologías para ofrecer un servicio de calidad y eficiente.</h6>
+        </div>
+        <div class="col-4 mb-5 mt-5">
+            <h2>Ser responsables</h2>
+            <h6>Nos comprometemos con nuestros clientes y con nuestro trabajo, cumplimos con lo que prometemos y nos esforzamos por hacerlo de la mejor manera. Nos preocupamos por el bienestar de nuestros colaboradores y de la sociedad, por eso siempre buscamos la manera de contribuir con el desarrollo sostenible y el cuidado del medio ambiente.</h6>
+        </div>
+    </div>
+</div>
+
+{% comment %} seccion destacados {% endcomment %}
+<div class="container mt-5">
+    <h2>Propiedades Destacadas</h2>
+    <div class="container" style="min-height: 80vh;">
+        <div class="row" id="inmueblesContainer">
+            {% for inmueble in inmuebles %}
+            <div class="col-md-3 mb-4 mt-3" data-inmueble-id="{{ inmueble.id }}" data-comuna-id="{{ inmueble.comuna.id }}">
+                <div class="card h-100">
+                    {% if inmueble.imagen %}
+                    <img src="{{ inmueble.imagen.url }}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
+                    {% else %}
+                    <img src="{% static 'img/home_default.jpg' %}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body">
+                        <h6 class="card-title">{{ inmueble.descripcion }}</h6>
+                        <p class="card-text"><small class="text-muted">Región: {{ inmueble.comuna.region.nombre }}</small></p>
+                        <p class="card-text"><small class="text-muted">Comuna: {{ inmueble.comuna.nombre }}</small></p>
+                        <p class="card-text"><small class="text-muted">Precio: ${{ inmueble.precio_mensual_arriendo }}</small></p>
+                    </div>
+                    <div class="card-footer d-flex justify-content-end">
+                        {% if request.user.is_authenticated %}
+                            {% if request.user.tipo_usuario == 'arrendador' %}
+                                <div class="btn-group" role="group" aria-label="Acciones">
+                                    <a href="{% url 'editar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm mr-3">Editar</a>
+                                    <form method="post" action="{% url 'eliminar_inmuebles' inmuebles_id=inmueble.id %}">  
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-danger btn-sm btnEliminar" data-inmueble-id="{{ inmueble.id }}">Eliminar</button>                            </form>
+                                </div>
+                            {% else %}
+                                <form>
+                                    <a href="{% url 'ver_propiedad' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm">Ver Propiedad</a>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div> 
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var myCarousel = new bootstrap.Carousel(document.getElementById('carrusel'), {
+            interval: 1800 // Cambia este valor para ajustar la velocidad del carrusel (en milisegundos)
+        });
+    });
+</script>
+{% endblock %}
+
+******************************arriendos/templates/inmuebles/ver_inmuebles.html******************************
+
+{% extends 'index.html' %}
+{% load static %}
+
+{% block title %}Ver Inmuebles{% endblock %}
+
+{% block content %}
+<style>
+.card{
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 6px 10px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
+    transition: .3s transform cubic-bezier(.155,1.105,.295,1.12),.3s box-shadow,.3s -webkit-transform cubic-bezier(.155,1.105,.295,1.12);
+    cursor: pointer;
+}
+
+.card:hover{
+     transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+
+.page-link {
+    color: #fff; /* Color del texto */
+    background-color: #28a745; /* Color de fondo verde "success" */
+    border-color: #28a745; /* Color del borde */
+}
+
+.page-item.active .page-link {
+    background-color: #218838; /* Color de fondo verde más oscuro para el botón activo */
+    border-color: #1e7e34; /* Color del borde */
+}
+}</style>
+
+{% if messages %}
+{% for message in messages %}
+<div class="container mt-4">
+    <div class="alert alert-{{ message.tags }} mt-3" role="alert">
+        {{ message }}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if user.tipo_usuario == 'arrendatario' %}
+<div class="container mt-4">
+    <form method="GET" action="{% url 'ver_inmuebles' %}" class="mb-3">
+        <div class="row">
+            <div class="col-md-4">
+                <select name="region" id="id_region" class="form-select">
+                    <option value="">Selecciona una región</option>
+                    {% for region in regiones %}
+                    <option value="{{ region.id }}" {% if request.GET.region == region.id|stringformat:"s" %}selected{% endif %}>{{ region.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="comuna" id="id_comuna" class="form-select">
+                    <option value="">Selecciona una comuna</option>
+                    {% for comuna in comunas %}
+                    <option value="{{ comuna.id }}" {% if request.GET.comuna == comuna.id|stringformat:"s" %}selected{% endif %}>{{ comuna.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex justify-content-end">
+                <button type="submit" class="btn btn-success me-2">Filtrar</button>
+                <a href="{% url 'ver_inmuebles' %}" class="btn btn-outline-success">Limpiar Filtros</a>
+            </div>
+        </div>
+    </form>
+</div>
+{% endif %}
+<div class="container" style="min-height: 80vh;">
+    <div class="row" id="inmueblesContainer">
+        {% for inmueble in inmuebles %}
+        <div class="col-md-3 mb-4 mt-3" data-inmueble-id="{{ inmueble.id }}" data-comuna-id="{{ inmueble.comuna.id }}">
+            <div class="card h-100">
+                {% if inmueble.imagen %}
+                <img src="{{ inmueble.imagen.url }}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
+                {% else %}
+                <img src="{% static 'img/home_default.jpg' %}" class="card-img-top" alt="{{ inmueble.descripcion }}" style="max-height: 150px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h6 class="card-title">{{ inmueble.descripcion }}</h6>
+                    <p class="card-text"><small class="text-muted">Región: {{ inmueble.comuna.region.nombre }}</small></p>
+                    <p class="card-text"><small class="text-muted">Comuna: {{ inmueble.comuna.nombre }}</small></p>
+                    <p class="card-text"><small class="text-muted">Precio: ${{ inmueble.precio_mensual_arriendo }}</small></p>
+                </div>
+                <div class="card-footer d-flex justify-content-end">
+                    {% if request.user.is_authenticated %}
+                        {% if request.user.tipo_usuario == 'arrendador' %}
+                            <div class="btn-group" role="group" aria-label="Acciones">
+                                <a href="{% url 'editar_inmuebles' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm mr-3">Editar</a>
+                                <form method="post" action="{% url 'eliminar_inmuebles' inmuebles_id=inmueble.id %}">  
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-danger btn-sm btnEliminar" data-inmueble-id="{{ inmueble.id }}">Eliminar</button>                            </form>
+                            </div>
+                        {% else %}
+                            <form>
+                                <a href="{% url 'ver_propiedad' inmuebles_id=inmueble.id %}" class="btn btn-success btn-sm">Ver Propiedad</a>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div> 
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script name="paginador">
+    $(document).ready(function() {
+        // Cantidad de tarjetas por página
+        var tarjetasPorPagina = 12;
+        // Total de tarjetas
+        var totalTarjetas = $('#inmueblesContainer .col-md-3').length;
+        // Número de páginas
+        var numeroPaginas = Math.ceil(totalTarjetas / tarjetasPorPagina);
+
+        // Función para mostrar las tarjetas de una página específica
+        function mostrarTarjetas(pagina) {
+            var inicio = (pagina - 1) * tarjetasPorPagina;
+            var fin = inicio + tarjetasPorPagina;
+            $('#inmueblesContainer .col-md-3').hide().slice(inicio, fin).show();
+        }
+
+        // Crear la paginación
+        var paginacion = $('<nav aria-label="Page navigation example"><ul class="pagination justify-content-end"></ul></nav>');
+        var listaPaginas = paginacion.find('ul');
+
+        for (var i = 1; i <= numeroPaginas; i++) {
+            var enlacePagina = $('<li class="page-item"><a class="page-link" href="#">' + i + '</a></li>');
+            enlacePagina.click(function() {
+                var pagina = parseInt($(this).text());
+                mostrarTarjetas(pagina);
+                listaPaginas.find('.active').removeClass('active');
+                $(this).addClass('active');
+            });
+            listaPaginas.append(enlacePagina);
+        }
+
+        // Mostrar la primera página al cargar
+        mostrarTarjetas(1);
+        listaPaginas.find('li:first-child').addClass('active');
+
+        // Agregar la paginación al DOM
+        $('#inmueblesContainer').after(paginacion);
+    });
+</script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#id_region').change(function() {
+            var url = "{% url 'comunas_por_region' 0 %}".slice(0, -2) + $(this).val() + '/';
+            $.ajax({
+                url: url,
+                success: function(data) {
+                    var $comuna = $('#id_comuna');
+                    $comuna.find('option').remove();
+                    $.each(data, function(key, value) {
+                        $comuna.append('<option value="' + value.id + '">' + value.nombre + '</option>');
+                    });
+                }
+            });
+        });
+    });
+</script>
+<script src="{% static 'js/modal_delete.js' %}"></script>
+{% endblock %}
