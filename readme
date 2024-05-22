@@ -1,5 +1,5 @@
 cd c:/CODE/
-virtualenv venv --python=python3.9
+
 source ./venv/Scripts/activate
 
 python -m pip freeze > requirements.txt 

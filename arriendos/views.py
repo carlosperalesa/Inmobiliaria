@@ -140,16 +140,20 @@ def ver_inmuebles(request):
 
     region_id = request.GET.get('region')
     comuna_id = request.GET.get('comuna')
+    tipo_inmueble = request.GET.get('tipo_inmueble')
 
     if region_id:
         inmuebles = inmuebles.filter(region_id=region_id)
     if comuna_id:
         inmuebles = inmuebles.filter(comuna_id=comuna_id)
+    if tipo_inmueble:
+        inmuebles = inmuebles.filter(tipo_inmueble=tipo_inmueble)
 
     return render(request, 'inmuebles/ver_inmuebles.html', {
         'regiones': regiones,
         'comunas': comunas,
-        'inmuebles': inmuebles
+        'inmuebles': inmuebles,
+        'tipos_inmueble': Inmueble.TIPO_INMUEBLE_CHOICES,
     })
 
 
