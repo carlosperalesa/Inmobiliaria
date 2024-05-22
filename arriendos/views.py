@@ -169,19 +169,15 @@ def ver_propiedad(request, inmuebles_id):
 @login_required
 def editar_inmuebles(request, inmuebles_id):
     inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
-    if request.user.tipo_usuario != 'arrendador' or request.user != inmueble.propietario:
+    if request.user.tipo_usuario != 'arrendador':
         return redirect('ver_inmuebles')
 
     if request.method == 'POST':
-        form = InmuebleForm(request.POST, request.FILES,
-                            instance=inmueble)
+        form = InmuebleForm(request.POST, request.FILES, instance=inmueble)
         if form.is_valid():
             form.save()
             messages.success(request, 'Inmueble actualizado con éxito.')
-            return redirect('ver_inmuebles')
-        else:
-            messages.error(
-                request, 'Hubo un problema al actualizar el inmueble.')
+            return redirect('ver_inmuebles')  # Redirigir después de guardar
     else:
         form = InmuebleForm(instance=inmueble)
 
