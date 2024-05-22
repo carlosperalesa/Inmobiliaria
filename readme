@@ -1,9 +1,11 @@
 cd c:/CODE/
-
+virtualenv venv --python=python3.9
 source ./venv/Scripts/activate
 
 python -m pip freeze > requirements.txt 
 pip install -r requirements.txt
+
+git reset --hard 762aa006c42a39d7f7b376ba332393afc081f92d
 
 cd inmobiliaria
 
