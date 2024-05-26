@@ -114,6 +114,19 @@ class Inmueble(models.Model):
         settings.AUTH_USER_MODEL, related_name='arrendamientos', on_delete=models.SET_NULL, null=True, blank=True)
     imagen = models.ImageField(upload_to='img', blank=True, null=True)
 
+    def __str__(self):
+        return self.descripcion  # O cualquier otro campo que identifique el inmueble
+
+
+class ImagenInmueble(models.Model):
+    inmueble = models.ForeignKey(
+        Inmueble, on_delete=models.CASCADE, related_name='imagenes')
+    imagen = models.ImageField(upload_to='inmuebles/')
+
+    def __str__(self):
+        # O el campo que uses para identificar el inmueble
+        return f"Imagen de {self.inmueble.descripcion}"
+
 
 class Contact(models.Model):
     name = models.CharField(max_length=100)

@@ -15,6 +15,11 @@
                     {{ field|as_crispy_field }}
                 {% endfor %}
 
+                <div id="image-fields">
+                </div>
+
+                <button type="button" class="btn btn-secondary" id="add-image">Agregar Imagen</button>
+
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-success">Crear</button>
                     <button type="reset" class="btn btn-outline-success ms-2">Limpiar</button>
@@ -24,8 +29,10 @@
     </div>
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script type="text/javascript">
     $(document).ready(function() {
+        // ... (código para manejar la selección de comunas por región) ...
         $('#id_region').change(function() {
             var url = "{% url 'comunas_por_region' 0 %}".slice(0, -2) + $(this).val() + '/';
             $.ajax({
@@ -38,6 +45,15 @@
                     });
                 }
             });
+        });
+        // Agregar campos de imagen dinámicamente
+        $("#add-image").click(function() {
+            $("#image-fields").append(`
+                <div class="mb-3">
+                    <label for="id_imagenes-${$("#image-fields").children().length}">Imagen:</label>
+                    <input type="file" name="imagenes" id="id_imagenes-${$("#image-fields").children().length}" class="form-control" required>
+                </div>
+            `);
         });
     });
 </script>

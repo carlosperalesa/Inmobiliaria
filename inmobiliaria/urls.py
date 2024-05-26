@@ -22,6 +22,9 @@ urlpatterns = [
          ver_propiedad, name='ver_propiedad'),
     path('eliminar_inmueble/<int:inmuebles_id>/',
          eliminar_inmuebles, name='eliminar_inmuebles'),
+    path('eliminar_imagen/<int:imagen_id>/',
+         eliminar_imagen, name='eliminar_imagen'),
+
     # Manejo de usuarios
     path('login/', login, name='login'),
     path('register/', register, name='register'),

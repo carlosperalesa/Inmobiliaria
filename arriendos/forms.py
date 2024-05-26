@@ -1,4 +1,4 @@
-from .models import Inmueble, Region, Comuna, Contact
+from .models import Inmueble, Region, Comuna, Contact, ImagenInmueble
 from django import forms
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import User
@@ -58,12 +58,9 @@ class InmuebleForm(forms.ModelForm):
 
     class Meta:
         model = Inmueble
-        fields = [
-            'descripcion', 'm2_construidos', 'm2_totales',
-            'cantidad_estacionamientos', 'cantidad_habitaciones', 'cantidad_banos',
-            'direccion', 'region', 'comuna', 'tipo_inmueble', 'precio_mensual_arriendo',
-            'imagen'
-        ]
+        fields = ['descripcion', 'm2_construidos', 'm2_totales', 'cantidad_estacionamientos',
+                  'cantidad_habitaciones', 'cantidad_banos', 'direccion', 'region',
+                  'comuna', 'tipo_inmueble', 'precio_mensual_arriendo']  # Excluimos 'imagen'
 
     def __init__(self, *args, **kwargs):
         super(InmuebleForm, self).__init__(*args, **kwargs)
@@ -79,6 +76,12 @@ class InmuebleForm(forms.ModelForm):
         elif self.instance.pk:
             self.fields['comuna'].queryset = self.instance.region.comuna_set.order_by(
                 'nombre')
+
+
+class ImagenInmuebleForm(forms.ModelForm):
+    class Meta:
+        model = ImagenInmueble
+        fields = ['imagen']
 
 
 class ContactForm(forms.ModelForm):

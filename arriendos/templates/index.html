@@ -47,7 +47,9 @@
 
 <body style="background-color: #D9FFC0">
 
-
+  {% comment %} {% with active_viewport='desktop' %}
+  {% include 'viewport.html' %} 
+  {% endwith %}  {% endcomment %}
   
 {% include 'header.html' %}
 

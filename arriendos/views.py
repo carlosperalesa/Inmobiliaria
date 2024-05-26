@@ -185,6 +185,21 @@ def editar_inmuebles(request, inmuebles_id):
 
 
 @login_required
+def eliminar_imagen(request, imagen_id):
+    imagen = get_object_or_404(ImagenInmueble, id=imagen_id)
+    inmueble = imagen.inmueble  # Obtén el inmueble asociado a la imagen
+
+    if request.user.tipo_usuario == 'arrendador':
+        imagen.delete()
+        messages.success(request, 'Imagen eliminada con éxito')
+    else:
+        messages.error(request, 'No tienes permiso para eliminar esta imagen')
+
+    # Redirige de vuelta al formulario de edición
+    return redirect('editar_inmuebles', inmuebles_id=inmueble.id)
+
+
+@login_required
 def eliminar_inmuebles(request, inmuebles_id):
     inmueble = get_object_or_404(Inmueble, id=inmuebles_id)
     if request.user.tipo_usuario == 'arrendador' and request.user == inmueble.propietario:

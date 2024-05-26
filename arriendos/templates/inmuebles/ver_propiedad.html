@@ -8,8 +8,27 @@
     <div class="card mb-3 mt-3">
         <div class="row g-0">
             <div class="col-md-6">
+
                 {% if inmueble.imagen %}
-                <img src="{{ inmueble.imagen.url }}" class="img-fluid rounded-start w-100 h-100" alt="{{ inmueble.nombre }}">
+
+                <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
+                    <div class="carousel-inner">
+                      {% for imagen in inmueble.imagenes.all %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                          <img src="{{ imagen.imagen.url }}" class="d-block w-100" alt="Imagen {{ forloop.counter }} de {{ inmueble.descripcion }}">
+                        </div>
+                      {% endfor %}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
+                      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Anterior</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                      <span class="visually-hidden">Siguiente</span>
+                    </button>
+                  </div>
+                  
                 {% else %}
                 <img src="{% static 'img/home_default.jpg' %}" class="img-fluid rounded-start" alt="{{ inmueble.nombre }}">
                 {% endif %}
